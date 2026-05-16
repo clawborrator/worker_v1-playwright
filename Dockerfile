@@ -43,28 +43,38 @@ ENV NODE_PATH=/usr/local/lib/node_modules
 
 # Install playwright globally so `node` invocations from any
 # working directory can `require('playwright')` without a per-
-# repo npm install. Also install playwright-extra and the
-# puppeteer-extra stealth plugin (which works with playwright-
-# extra). Stealth patches navigator.webdriver, chrome.runtime,
-# plugins array, WebGL fingerprint, canvas hash, and a handful
-# of other detectable headless signals. Not a permanent fix
-# for hostile anti-bot stacks (LinkedIn) but extends session
-# lifetime by removing the most-obvious tells.
+# repo npm install. Also install playwright-extra, the
+# puppeteer-extra runtime that the stealth plugin uses for its
+# plugin discovery (works with playwright-extra too), the
+# stealth plugin itself, AND user-preferences which stealth
+# loads dynamically. Stealth's plugin loader expects user-
+# preferences as a SIBLING in node_modules, not nested inside
+# its own folder, so we install it explicitly at the top level.
+# (Pre-0.1.3 of this image omitted puppeteer-extra and user-
+# preferences as siblings and the stealth import errored at
+# runtime with "user-preferences could not be found".)
 ARG PLAYWRIGHT_VERSION=1.49.0
 RUN npm install -g \
         playwright@${PLAYWRIGHT_VERSION} \
         playwright-extra \
-        puppeteer-extra-plugin-stealth
+        puppeteer-extra \
+        puppeteer-extra-plugin-stealth \
+        puppeteer-extra-plugin-user-preferences
 
 # Xvfb. Lets agents run Chromium with `headless: false` under a
 # virtual display, which removes the most obvious "I'm headless"
-# fingerprint signal that sites like LinkedIn check. Cost: ~5MB
-# package + ~1s per `xvfb-run` invocation to spin up the display.
-# Agents invoke it as `xvfb-run -a node ...` to get an isolated
-# display per run.
+# fingerprint signal that sites like LinkedIn check. xauth is
+# required by xvfb-run (the convenience wrapper agents use as
+# `xvfb-run -a node ...`); without xauth, xvfb-run errors with
+# "xauth command not found". (Pre-0.1.3 of this image shipped
+# xvfb without xauth and the prefix failed immediately.)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends xvfb && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+        xvfb \
+        xauth && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /tmp/.X11-unix && \
+    chmod 1777 /tmp/.X11-unix
 
 # Pull down Chromium + matching system deps. `--with-deps` runs
 # apt-get under the hood for the missing shared libs Chromium
