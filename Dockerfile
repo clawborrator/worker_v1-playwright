@@ -32,6 +32,15 @@ USER 0
 # worker user can read it without per-user re-download.
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright
 
+# CRITICAL — without this, `require('playwright')` from any
+# script outside /usr/local/lib/node_modules fails with "Cannot
+# find module 'playwright'". `npm install -g` puts the package
+# at /usr/local/lib/node_modules but Node.js does NOT search
+# global node_modules during require() resolution unless NODE_PATH
+# explicitly names it. (Pre-0.1.1 of this image omitted this and
+# every consumer hit the missing-module error on first run.)
+ENV NODE_PATH=/usr/local/lib/node_modules
+
 # Install playwright globally so `node` invocations from any
 # working directory can `require('playwright')` without a per-
 # repo npm install. Pinned to a known-good major; bump explicitly.
