@@ -43,9 +43,28 @@ ENV NODE_PATH=/usr/local/lib/node_modules
 
 # Install playwright globally so `node` invocations from any
 # working directory can `require('playwright')` without a per-
-# repo npm install. Pinned to a known-good major; bump explicitly.
+# repo npm install. Also install playwright-extra and the
+# puppeteer-extra stealth plugin (which works with playwright-
+# extra). Stealth patches navigator.webdriver, chrome.runtime,
+# plugins array, WebGL fingerprint, canvas hash, and a handful
+# of other detectable headless signals. Not a permanent fix
+# for hostile anti-bot stacks (LinkedIn) but extends session
+# lifetime by removing the most-obvious tells.
 ARG PLAYWRIGHT_VERSION=1.49.0
-RUN npm install -g playwright@${PLAYWRIGHT_VERSION}
+RUN npm install -g \
+        playwright@${PLAYWRIGHT_VERSION} \
+        playwright-extra \
+        puppeteer-extra-plugin-stealth
+
+# Xvfb. Lets agents run Chromium with `headless: false` under a
+# virtual display, which removes the most obvious "I'm headless"
+# fingerprint signal that sites like LinkedIn check. Cost: ~5MB
+# package + ~1s per `xvfb-run` invocation to spin up the display.
+# Agents invoke it as `xvfb-run -a node ...` to get an isolated
+# display per run.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends xvfb && \
+    rm -rf /var/lib/apt/lists/*
 
 # Pull down Chromium + matching system deps. `--with-deps` runs
 # apt-get under the hood for the missing shared libs Chromium
