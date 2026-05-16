@@ -59,7 +59,8 @@ RUN npm install -g \
         playwright-extra \
         puppeteer-extra \
         puppeteer-extra-plugin-stealth \
-        puppeteer-extra-plugin-user-preferences
+        puppeteer-extra-plugin-user-preferences \
+        puppeteer-extra-plugin-user-data-dir
 
 # Xvfb. Lets agents run Chromium with `headless: false` under a
 # virtual display, which removes the most obvious "I'm headless"
