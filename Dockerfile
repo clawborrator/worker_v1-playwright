@@ -69,6 +69,10 @@ RUN npm install -g \
 # `xvfb-run -a node ...`); without xauth, xvfb-run errors with
 # "xauth command not found". (Pre-0.1.3 of this image shipped
 # xvfb without xauth and the prefix failed immediately.)
+#
+# Note: tini moved to the base image as of base 0.1.x — chrome
+# zombie reaping now happens at PID 1 automatically. No tini
+# install here.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         xvfb \
@@ -107,4 +111,6 @@ USER 0
 #                                 load these via context.addCookies()
 #                                 to skip the login flow on every run.
 #
-# Entry / runtime is inherited from the base — no override needed.
+# Entry / runtime is inherited from the base — base now wraps the
+# entrypoint with tini (PID 1 reaper) so this image doesn't need
+# its own ENTRYPOINT override.
